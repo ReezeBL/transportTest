@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
+using transportTest.Clusterization;
 
 namespace transportTest
 {
@@ -104,11 +105,15 @@ namespace transportTest
             }          
             Console.WriteLine("Обработка данных завершена. Всего транспортных средств зарегестрировано: {0}", routeIdMap.Count);           
             Console.WriteLine("Введите идентификатор транспортного средства, для построения тестовой выборки: ");
-            String command = "";
-            do
-            {
-                command = Console.ReadLine();
-            } while (ParseCommand(command));
+            //String command = "";
+            //do
+            //{
+            //    command = Console.ReadLine();
+            //} while (ParseCommand(command));
+            SelectStatGrid("all");
+            WeedSelection();
+            StopPoints();
+            ClusterSelected();
         }
         static bool ParseCommand(String command)
         {
@@ -132,6 +137,9 @@ namespace transportTest
                 case "get":
                     StopPoints();
                     return true;
+                case "cluster":
+                    ClusterSelected();
+                    return true;
                 default:
                     Console.WriteLine("Неизвестная комманда!");
                     return true;
@@ -142,16 +150,18 @@ namespace transportTest
         {
             selected.Sort((a, b) => a.RouteID == b.RouteID ? a.time.CompareTo(b.time) : a.RouteID.CompareTo(b.RouteID));           
             double dprev = 0;
-            selected = selected.Where(w => { bool ans = w.Distance(beg) > dprev; dprev = w.Distance(beg); return ans && w.Y < beg.Y + 100; }).ToList();           
+            selected = selected.Where(w => {
+                bool ans = w.Distance(beg) > dprev;
+                dprev = w.Distance(beg);
+                return ans && (w.Y < beg.Y + 100) && (w.X <= beg.X + 150) && (w.X >= end.X) ;
+            }).ToList();           
         }
-
         private static void StopPoints()
         {
             selected.Sort((a, b) => a.RouteID == b.RouteID ? a.time.CompareTo(b.time) : a.RouteID.CompareTo(b.RouteID));
             Waypoint wprev = selected.First();
             selected = selected.Where(a => { bool ans = Velocity.getVelocity(wprev, a) < 0.05 && (a.time - wprev.time).TotalMinutes < 60; wprev = a; return ans; }).ToList();
         }
-
         static void SelectStatGrid(String route)
         {
             if (route == "all")
@@ -169,7 +179,6 @@ namespace transportTest
             int id = routeIdMap[route];
             selected = data.Where(a => a.time.TimeOfDay <= dateEnd && a.time.TimeOfDay >= dateBegin && a.RouteID == id).ToList();
         }
-
         static void ShowGrid()
         {
             if (selected != null || selected.Count == 0)
@@ -177,6 +186,20 @@ namespace transportTest
             else
                 Console.WriteLine("Текущая выборка пуста");
         }
+        static void ClusterSelected()
+        {         
+            IList<DataItem<double>> data = selected.Select(w => new DataItem<double>(new double[2] { w.X, w.Y })).ToList();
+            IList<double[]> centroids = KMeans.KMeansPPClusters(39, data, new EuclideanMetrics(), new double[] { beg.X, beg.Y });
+            KMeans clusterizator = new KMeans(centroids, new EuclideanMetrics(),100);
 
+            ClusterizationResult <double> res = clusterizator.MakeClusterization(data);
+            List<Waypoint> stops = res.Centroids.Select(s => new Waypoint(s[0], s[1])).ToList();
+            stops.Sort((a, b) => a.Distance(beg).CompareTo(b.Distance(beg)));
+            foreach (var s in stops)
+            {
+                Console.WriteLine("{0:0.#} {1:0.#}", s.X, s.Y);          
+            }            
+            new StatGrid(stops).ShowDialog();
+        }
     }
 }
