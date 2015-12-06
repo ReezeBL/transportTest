@@ -50,22 +50,22 @@ namespace transportTest
             chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Point;
             chart1.Series[1].Points.AddXY(beg.X, beg.Y);
             chart1.Series[1].Points.AddXY(end.X, end.Y);
-            foreach (Program.Waypoint w in data)
-            {
-                chart1.Series[0].Points.AddXY(w.X, w.Y);
-            }
+            data.ForEach(a => chart1.Series[0].Points.AddXY(a.X, a.Y));
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
             clearArea();
-            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Point;
-            Program.Waypoint first = data.First();
-            foreach (Program.Waypoint w in data)
-            {
-                chart1.Series[0].Points.AddXY(w.time, w.Distance(beg));
-                chart1.Series[1].Points.AddXY(w.time, w.Distance(end));
-            }
+            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Point;          
+            data.ForEach(a => chart1.Series[0].Points.AddXY(a.time, a.Distance(beg)));
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            clearArea();
+            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+            Program.Waypoint prev = data.First();
+            data.ForEach(a => { chart1.Series[0].Points.AddXY(prev.time, Program.Velocity.CalculateVelocity(prev, a).v); prev = a; });
         }
     }
 }

@@ -39,9 +39,26 @@ namespace transportTest
                 return base.GetHashCode();
             }
         }
-        private class Velocity
+        public class Velocity
         {
+            public double x, y, v;
+            public Velocity(double x, double y, double v)
+            {
+                this.x = x;
+                this.y = y;
+                this.v = v;
+            }
+            public static Velocity CalculateVelocity(Waypoint w1, Waypoint w2)
+            {
+                return new Velocity(w1.X, w1.Y, w1.Distance(w2) / (w2.time - w1.time).TotalSeconds);
+            }
 
+            public static double getVelocity(Waypoint w1, Waypoint w2)
+            {
+                if (w1 == w2)
+                    return double.PositiveInfinity;
+                return Math.Abs(w1.Distance(w2) / (w2.time - w1.time).TotalSeconds);
+            }
         }
 
         public static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
@@ -85,11 +102,7 @@ namespace transportTest
                 data.Add(w);
                 
             }          
-            Console.WriteLine("Обработка данных завершена. Всего транспортных средств зарегестрировано: {0}", routeIdMap.Count);
-            foreach(String n in routeIdMap.Keys)
-            {
-                Console.WriteLine("\t{0}:{1}", n, data.Where(a => a.RouteID == routeIdMap[n]).Count());
-            }
+            Console.WriteLine("Обработка данных завершена. Всего транспортных средств зарегестрировано: {0}", routeIdMap.Count);           
             Console.WriteLine("Введите идентификатор транспортного средства, для построения тестовой выборки: ");
             String command = "";
             do
@@ -116,6 +129,9 @@ namespace transportTest
                 case "weed":
                     WeedSelection();
                     return true;
+                case "get":
+                    StopPoints();
+                    return true;
                 default:
                     Console.WriteLine("Неизвестная комманда!");
                     return true;
@@ -124,16 +140,16 @@ namespace transportTest
 
         private static void WeedSelection()
         {
-            selected.Sort((a, b) => a.RouteID == b.RouteID ? a.time.CompareTo(b.time) : a.RouteID.CompareTo(b.RouteID));
-            List<Waypoint> tmp;
+            selected.Sort((a, b) => a.RouteID == b.RouteID ? a.time.CompareTo(b.time) : a.RouteID.CompareTo(b.RouteID));           
             double dprev = 0;
-            tmp = selected.Where(w => { bool ans = w.Distance(beg) > dprev; dprev = w.Distance(beg); return ans && w.Y < beg.Y + 100; }).ToList();
-            selected = tmp;
+            selected = selected.Where(w => { bool ans = w.Distance(beg) > dprev; dprev = w.Distance(beg); return ans && w.Y < beg.Y + 100; }).ToList();           
         }
 
         private static void StopPoints()
         {
-            //(.)(.)
+            selected.Sort((a, b) => a.RouteID == b.RouteID ? a.time.CompareTo(b.time) : a.RouteID.CompareTo(b.RouteID));
+            Waypoint wprev = selected.First();
+            selected = selected.Where(a => { bool ans = Velocity.getVelocity(wprev, a) < 0.05 && (a.time - wprev.time).TotalMinutes < 60; wprev = a; return ans; }).ToList();
         }
 
         static void SelectStatGrid(String route)
