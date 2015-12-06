@@ -14,6 +14,7 @@ namespace transportTest
         {
             public double X, Y;
             public DateTime time;
+            public int RouteID;
             public Waypoint(double X = 0, double Y = 0)
             {
                 this.X = X;
@@ -38,6 +39,11 @@ namespace transportTest
                 return base.GetHashCode();
             }
         }
+        private class Velocity
+        {
+
+        }
+
         public static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
         {           
             DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, System.DateTimeKind.Utc);
@@ -45,16 +51,22 @@ namespace transportTest
             return dtDateTime;
         }
 
+        #region Variables&Consts
         static Waypoint beg = new Program.Waypoint(11038.08464497, 8253.17542416);
         static Waypoint end = new Program.Waypoint(283.08479678, 163.45489494);
 
-        static SortedDictionary<String, List<Waypoint>> data = new SortedDictionary<string, List<Waypoint>>();
+        static List<Waypoint> data = new List<Waypoint>();
+        static Dictionary<String, int> routeIdMap = new Dictionary<string, int>();
+
         static List<Waypoint> selected = null;
+        #endregion
+
         static void Main(string[] args)
         {
            
             String[] lines = File.ReadAllLines("train.txt");
-            Console.WriteLine("Файл с данными усмпешно прочитан. Найдено {0} элементов.", lines.Length);           
+            Console.WriteLine("Файл с данными усмпешно прочитан. Найдено {0} элементов.", lines.Length);
+            int ID = 0;         
             foreach (String line in lines)
             {
                 String[] elems = line.Split('\t');
@@ -62,26 +74,21 @@ namespace transportTest
                 w.X = Double.Parse(elems[1], CultureInfo.InvariantCulture);
                 w.Y = Double.Parse(elems[2], CultureInfo.InvariantCulture);
                 w.time = UnixTimeStampToDateTime(Double.Parse(elems[0], CultureInfo.InvariantCulture));
-                if (data.ContainsKey(elems[3]))
-                {
-                    List<Waypoint> tmp = data[elems[3]];
-                    tmp.Add(w);
+                if (routeIdMap.ContainsKey(elems[3])) {
+                    w.RouteID = routeIdMap[elems[3]];
                 }
                 else
                 {
-                    List<Waypoint> tmp = new List<Waypoint>();
-                    tmp.Add(w);
-                    data.Add(elems[3], tmp);
+                    w.RouteID = ID++;
+                    routeIdMap.Add(elems[3], ID);
                 }
-            }
-            foreach(List<Waypoint> l in data.Values)
+                data.Add(w);
+                
+            }          
+            Console.WriteLine("Обработка данных завершена. Всего транспортных средств зарегестрировано: {0}", routeIdMap.Count);
+            foreach(String n in routeIdMap.Keys)
             {
-                l.Sort((a, b) => { return a.time.CompareTo(b.time); });
-            }
-            Console.WriteLine("Обработка данных завершена. Всего транспортных средств зарегестрировано: {0}", data.Keys.Count);
-            foreach(String n in data.Keys)
-            {
-                Console.WriteLine("\t{0}:{1}", n, data[n].Count);
+                Console.WriteLine("\t{0}:{1}", n, data.Where(a => a.RouteID == routeIdMap[n]).Count());
             }
             Console.WriteLine("Введите идентификатор транспортного средства, для построения тестовой выборки: ");
             String command = "";
@@ -117,28 +124,10 @@ namespace transportTest
 
         private static void WeedSelection()
         {
-            List<Waypoint> tmp = new List<Waypoint>();
-            Waypoint prev = null;
-            foreach (Waypoint w in selected)
-            {
-                if (prev == null)
-                {
-                    prev = w;
-                    continue;
-                }
-
-                //Градиентное отсеивание
-
-                //double gradY = w.Y - prev.Y, gradX = w.X - prev.X;
-                //if ((gradY < 50) && (gradX < 10) && w.Y <= beg.Y + 100.0)
-                //    tmp.Add(w);
-
-                //Дистанционнное отсеивание
-
-                if (w.Distance(beg) > prev.Distance(beg) && w.Y < (beg.Y + 100))
-                    tmp.Add(w);
-                prev = w;
-            }
+            selected.Sort((a, b) => a.RouteID == b.RouteID ? a.time.CompareTo(b.time) : a.RouteID.CompareTo(b.RouteID));
+            List<Waypoint> tmp;
+            double dprev = 0;
+            tmp = selected.Where(w => { bool ans = w.Distance(beg) > dprev; dprev = w.Distance(beg); return ans && w.Y < beg.Y + 100; }).ToList();
             selected = tmp;
         }
 
@@ -149,39 +138,20 @@ namespace transportTest
 
         static void SelectStatGrid(String route)
         {
-            List<Waypoint> tmp;
             if (route == "all")
             {
-                tmp = new List<Waypoint>();
-                foreach (List<Waypoint> l in data.Values)
-                    tmp.AddRange(l);
-                selected = tmp;
+                selected = data.ToList();
             }
             else
             {
-                if (data.TryGetValue(route, out tmp))
-                {
-                    selected = tmp;
-                }
-                else
-                {
-                    Console.WriteLine("Неопознаный идентификатор транспортного средства.");
-                    selected = null;
-                }
+                int id = routeIdMap[route];
+                selected = data.Where(e => e.RouteID == id).ToList();
             }
         }
         static void SelectStatGrid(String route, TimeSpan dateBegin, TimeSpan dateEnd)
         {
-            List<Waypoint> tmp;
-            if (data.TryGetValue(route, out tmp))
-            {
-                selected = tmp.Where(a => a.time.TimeOfDay <= dateEnd && a.time.TimeOfDay >= dateBegin).ToList();
-            }
-            else
-            {
-                Console.WriteLine("Неопознаный идентификатор транспортного средства.");
-                selected = null;
-            }
+            int id = routeIdMap[route];
+            selected = data.Where(a => a.time.TimeOfDay <= dateEnd && a.time.TimeOfDay >= dateBegin && a.RouteID == id).ToList();
         }
 
         static void ShowGrid()
