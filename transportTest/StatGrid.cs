@@ -56,9 +56,8 @@ namespace transportTest
         private void button2_Click(object sender, EventArgs e)
         {
             clearArea();
-            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Point;
-            Program.Waypoint t = data.First();         
-            data.ForEach(a => chart1.Series[0].Points.AddXY((a.time - t.time).TotalHours, a.Distance(beg)));
+            chart1.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Point;          
+            data.ForEach(a => chart1.Series[0].Points.AddXY(a.time, a.Distance(beg)));
         }
 
         private void button3_Click(object sender, EventArgs e)

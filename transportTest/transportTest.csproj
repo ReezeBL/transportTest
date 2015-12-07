@@ -52,7 +52,6 @@
     <Compile Include="Clusterization\IClusterization.cs" />
     <Compile Include="Clusterization\IMetrics.cs" />
     <Compile Include="Clusterization\KMeans.cs" />
-    <Compile Include="Interpolation\RPropInterpolator.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StatGrid.cs">
