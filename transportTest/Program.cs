@@ -103,17 +103,24 @@ namespace transportTest
                 data.Add(w);
                 
             }          
-            Console.WriteLine("Обработка данных завершена. Всего транспортных средств зарегестрировано: {0}", routeIdMap.Count);           
+            Console.WriteLine("Обработка данных завершена. Всего транспортных средств зарегестрировано: {0}", routeIdMap.Count);     
+            foreach(String s in routeIdMap.Keys)
+            {
+                int id = routeIdMap[s];
+                IEnumerable<Waypoint> part = data.Where(w => w.RouteID == id);
+                Console.WriteLine("{0}: {1} | {2}",s, part.Count(), part.First().Distance(beg) < 1000);
+            }      
             Console.WriteLine("Введите идентификатор транспортного средства, для построения тестовой выборки: ");
-            //String command = "";
-            //do
-            //{
-            //    command = Console.ReadLine();
-            //} while (ParseCommand(command));
-            SelectStatGrid("all");
-            WeedSelection();
-            StopPoints();
-            ClusterSelected();
+            String command = "";
+            do
+            {
+                command = Console.ReadLine();
+            } while (ParseCommand(command));
+            //SelectStatGrid("all");
+            //WeedSelection();
+            //ShowGrid();
+            //StopPoints();
+            //ClusterSelected();
         }
         static bool ParseCommand(String command)
         {
@@ -148,13 +155,31 @@ namespace transportTest
 
         private static void WeedSelection()
         {
-            selected.Sort((a, b) => a.RouteID == b.RouteID ? a.time.CompareTo(b.time) : a.RouteID.CompareTo(b.RouteID));           
-            double dprev = 0;
-            selected = selected.Where(w => {
-                bool ans = w.Distance(beg) > dprev;
-                dprev = w.Distance(beg);
-                return ans && (w.Y < beg.Y + 100) && (w.X <= beg.X + 150) && (w.X >= end.X) ;
-            }).ToList();           
+            selected.Sort((a, b) => a.RouteID == b.RouteID ? a.time.CompareTo(b.time) : a.RouteID.CompareTo(b.RouteID));
+            //List<Waypoint> tmp = new List<Waypoint>();        
+            //while(selected.Count > 0)
+            //{
+            //    Waypoint prev = selected.First();
+            //    List<Waypoint> part = selected.TakeWhile(w =>
+            //    {
+            //        bool ans = w.Distance(beg) >= prev.Distance(beg);
+            //        prev = w;
+            //        return ans;
+            //    }).ToList();
+            //    if (part.Count >= 30)
+            //        tmp.AddRange(part);
+            //    selected = selected.Skip(part.Count).ToList();
+            //    if (selected.Count == 0)
+            //        break;
+            //    prev = selected.First();
+            //    selected = selected.SkipWhile(w =>
+            //    {
+            //        bool ans = w.Distance(beg) <= prev.Distance(beg);
+            //        prev = w;
+            //        return ans;
+            //    }).ToList();
+            //}
+            //selected = tmp;     
         }
         private static void StopPoints()
         {
